@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  <script>(function(){var t=localStorage.getItem("inv_theme");if(t==="tavern"){document.documentElement.setAttribute("data-theme","tavern");}})();</script>
+  <title>Categories · StockTag Inventory</title>
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/table.css" />
+  <link rel="stylesheet" href="css/modal.css" />
+  <link rel="stylesheet" href="css/animations.css" />
+  <link rel="stylesheet" href="css/theme-tavern.css" />
+</head>
+<body>
+  <script src="js/api.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/shell.js"></script>
+  <script>
+    if (!requireAuth()) { document.write(''); }
+  </script>
+
+  <script>
+    renderShell({ activeId: 'categories', pageTitle: 'Categories', crumb: 'Catalog' });
+    setTopbarActions(`<button class="btn btn-primary" id="addBtn">${Icons.plus} New category</button>`);
+
+    let categories = [];
+
+    async function load() {
+      const root = pageRoot();
+      root.innerHTML = `<div class="loading-row"><div class="spinner"></div> Loading categories…</div>`;
+      try {
+        categories = await API.listCategories();
+        render();
+      } catch (err) {
+        root.innerHTML = `<div class="empty-state"><div class="icon-wrap">${Icons.alert}</div><h4>Couldn't load categories</h4><p>${escapeHtml(err.message)}</p></div>`;
+      }
+    }
+
+    function render() {
+      const root = pageRoot();
+
+      if (!categories.length) {
+        root.innerHTML = `
+          <div class="card">
+            <div class="empty-state">
+              <div class="icon-wrap">${Icons.tag}</div>
+              <h4>No categories yet</h4>
+              <p>Categories help you group products on the shelf and in reports.</p>
+              <button class="btn btn-primary" onclick="openForm()">${Icons.plus} Add your first category</button>
+            </div>
+          </div>`;
+        return;
+      }
+
+      const rows = categories
+        .map(
+          (c) => `
+        <tr>
+          <td data-label="Name" class="cell-primary">${escapeHtml(c.name)}</td>
+          <td data-label="Products"><span class="badge badge-neutral">${c.productCount} product${c.productCount === 1 ? '' : 's'}</span></td>
+          <td data-label="Actions" class="cell-actions">
+            <div class="row-actions">
+              <button onclick="openForm(${c.id})" aria-label="Edit ${escapeHtml(c.name)}">${Icons.edit}</button>
+              <button class="danger" onclick="confirmDelete(${c.id})" aria-label="Delete ${escapeHtml(c.name)}">${Icons.trash}</button>
+            </div>
+          </td>
+        </tr>`
+        )
+        .join('');
+
+      root.innerHTML = `
+        <div class="card">
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Name</th><th>Products</th><th></th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div>`;
+    }
+
+    function openForm(id) {
+      const editing = categories.find((c) => c.id === id);
+
+      const overlay = Modal.open(`
+        <div class="modal-header">
+          <h3>${editing ? 'Edit category' : 'New category'}</h3>
+          <button class="modal-close" id="closeModal">${Icons.close}</button>
+        </div>
+        <div class="modal-body">
+          <div class="field">
+            <label for="catName">Category name</label>
+            <input id="catName" type="text" placeholder="e.g. Beverages" value="${editing ? escapeHtml(editing.name) : ''}" />
+            <div class="error-text" id="catNameError" style="display:none;"></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" id="cancelBtn">Cancel</button>
+          <button class="btn btn-primary" id="saveBtn">${editing ? 'Save changes' : 'Create category'}</button>
+        </div>
+      `);
+
+      overlay.querySelector('#closeModal').onclick = Modal.close;
+      overlay.querySelector('#cancelBtn').onclick = Modal.close;
+      const nameInput = overlay.querySelector('#catName');
+      nameInput.focus();
+
+      overlay.querySelector('#saveBtn').onclick = async () => {
+        const name = nameInput.value.trim();
+        const errEl = overlay.querySelector('#catNameError');
+        if (!name) {
+          errEl.textContent = 'Category name is required';
+          errEl.style.display = 'block';
+          nameInput.classList.add('invalid');
+          return;
+        }
+
+        const btn = overlay.querySelector('#saveBtn');
+        btn.disabled = true;
+        btn.textContent = 'Saving…';
+
+        try {
+          if (editing) {
+            await API.updateCategory(editing.id, { name });
+            Toast.success('Category updated');
+          } else {
+            await API.createCategory({ name });
+            Toast.success('Category created');
+          }
+          Modal.close();
+          load();
+        } catch (err) {
+          errEl.textContent = err.message;
+          errEl.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = editing ? 'Save changes' : 'Create category';
+        }
+      };
+    }
+
+    function confirmDelete(id) {
+      const cat = categories.find((c) => c.id === id);
+      Modal.confirm({
+        title: `Delete "${cat.name}"?`,
+        message: 'This cannot be undone. Categories that still have products attached cannot be deleted.',
+        confirmLabel: 'Delete category',
+        onConfirm: async () => {
+          await API.deleteCategory(id);
+          Toast.success('Category deleted');
+          load();
+        },
+      });
+    }
+
+    document.getElementById('addBtn').addEventListener('click', () => openForm());
+
+    load();
+  </script>
+</body>
+</html>

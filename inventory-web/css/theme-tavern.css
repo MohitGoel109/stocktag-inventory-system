@@ -1,0 +1,121 @@
+/* ============================================================
+   Theme: "Boar Hat Tavern" — dark, mood-inspired alt theme
+   Deep purples / wine reds / tavern gold. Original palette,
+   not affiliated with or depicting any copyrighted franchise.
+   Activated via [data-theme="tavern"] on <html>.
+   ============================================================ */
+
+html[data-theme="tavern"] {
+  --ink-900: #F4ECE0;          /* now used as "light text on dark" */
+  --ink-800: #E8DCC8;
+  --ink-700: #D8C9A8;
+  --paper: #1A1322;            /* deep aubergine-black background */
+  --paper-dim: #241A2E;
+  --card: #271C33;
+  --amber: #D9A441;            /* tavern gold */
+  --amber-dark: #C28A2A;
+  --stock-green: #5FA37C;
+  --stock-green-bg: rgba(95, 163, 124, 0.16);
+  --alert-rust: #E0566B;       /* wine red */
+  --alert-rust-bg: rgba(224, 86, 107, 0.16);
+  --slate: #B6A8C4;
+  --slate-light: #7E6E8F;
+  --line: #3A2B4A;
+  --line-strong: #4D3A60;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 36px rgba(0, 0, 0, 0.55);
+
+  color-scheme: dark;
+}
+
+/* Sidebar / topbar need their own dark-on-dark adjustments since the
+   base theme hardcodes a navy sidebar that already reads dark. In tavern
+   mode we deepen it further and swap the accent glow to a wine-purple. */
+html[data-theme="tavern"] .sidebar {
+  background: linear-gradient(180deg, #140D1B 0%, #1E1428 100%);
+  border-right: 1px solid #3A2B4A;
+}
+
+html[data-theme="tavern"] .sidebar-brand .mark {
+  background: linear-gradient(135deg, #D9A441, #B5762A);
+  box-shadow: 0 0 18px rgba(217, 164, 65, 0.35);
+}
+
+html[data-theme="tavern"] .nav-item.active {
+  background: rgba(217, 164, 65, 0.12);
+}
+
+html[data-theme="tavern"] .topbar {
+  background: var(--paper);
+  border-bottom-color: var(--line);
+}
+
+html[data-theme="tavern"] body {
+  background:
+    radial-gradient(ellipse at top right, rgba(217, 164, 65, 0.05), transparent 50%),
+    radial-gradient(ellipse at bottom left, rgba(224, 86, 107, 0.05), transparent 50%),
+    var(--paper);
+}
+
+html[data-theme="tavern"] .card,
+html[data-theme="tavern"] .stat-tile,
+html[data-theme="tavern"] .modal,
+html[data-theme="tavern"] input,
+html[data-theme="tavern"] select,
+html[data-theme="tavern"] textarea {
+  background: var(--card);
+}
+
+html[data-theme="tavern"] .stat-tile::before {
+  border-color: transparent var(--paper-dim) transparent transparent;
+}
+
+html[data-theme="tavern"] .btn-primary {
+  background: linear-gradient(135deg, var(--amber), var(--amber-dark));
+  color: #1A1322;
+}
+
+html[data-theme="tavern"] ::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-color: var(--paper);
+}
+
+html[data-theme="tavern"] .login-aside {
+  background: linear-gradient(160deg, #140D1B 0%, #241431 100%);
+}
+
+/* Theme toggle switch (placed in topbar / sidebar footer) */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: var(--card);
+  color: var(--ink-900);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 12.5px;
+  transition: border-color 120ms ease, transform 80ms ease;
+}
+.theme-toggle:hover { border-color: var(--amber); }
+.theme-toggle:active { transform: scale(0.97); }
+.theme-toggle svg { width: 15px; height: 15px; }
+
+/* Sound + music toggle pills */
+.av-toggle {
+  width: 34px; height: 34px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: var(--card);
+  color: var(--slate);
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+.av-toggle svg { width: 16px; height: 16px; }
+.av-toggle:hover { border-color: var(--amber); color: var(--ink-900); }
+.av-toggle.active { border-color: var(--amber); color: var(--amber-dark); background: rgba(232,146,60,0.1); }

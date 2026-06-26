@@ -1,0 +1,44 @@
+# ===== Secrets — never commit these =====
+.env
+.env.*
+*.pem
+*.key
+
+# ===== Java / Maven =====
+target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+*.war
+*.ear
+hs_err_pid*
+
+# ===== NetBeans (legacy Swing app) =====
+legacy-swing-app/build/
+legacy-swing-app/dist/
+legacy-swing-app/nbproject/private/
+nbbuild/
+nbdist/
+.nb-gradle/
+
+# ===== IDE =====
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+
+# ===== Logs =====
+*.log
+logs/
+
+# ===== Node (if any tooling added later) =====
+node_modules/
+
+# ===== Docker =====
+docker-compose.override.yml
+
+inventory-api/run.ps1

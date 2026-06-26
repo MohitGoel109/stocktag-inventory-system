@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  <script>(function(){var t=localStorage.getItem("inv_theme");if(t==="tavern"){document.documentElement.setAttribute("data-theme","tavern");}})();</script>
+  <title>Sign in · StockTag Inventory</title>
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/login.css" />
+  <link rel="stylesheet" href="css/animations.css" />
+  <link rel="stylesheet" href="css/theme-tavern.css" />
+</head>
+<body>
+  <div class="login-screen">
+    <aside class="login-aside">
+      <div class="brand-mark">
+        <div class="mark">S</div>
+        <div class="name">StockTag</div>
+      </div>
+
+      <div id="loginAvControls" style="display:flex; gap:8px; position:absolute; top:48px; right:48px;"></div>
+
+      <div class="pitch">
+        <h2>Every shelf, every order, every customer — one running tally.</h2>
+        <p>StockTag keeps your stock counts honest and your order history searchable, from the till to the back room.</p>
+        <div class="tag-row" style="margin-top:24px;">
+          <span class="tag-chip">✓ Real-time stock levels</span>
+          <span class="tag-chip">✓ Role-based access</span>
+          <span class="tag-chip">✓ Order history</span>
+        </div>
+      </div>
+
+      <div style="font-size:12.5px; color:rgba(255,255,255,0.4);">© <span id="year"></span> StockTag Inventory System</div>
+    </aside>
+
+    <main class="login-main">
+      <div class="login-card">
+        <div id="loginAvControlsMobile" style="display:none; gap:8px; margin-bottom:20px; justify-content:center;"></div>
+        <div class="eyebrow">Welcome back</div>
+        <h1>Sign in to your account</h1>
+        <p class="sub">Enter your email and password to access the dashboard.</p>
+
+        <div id="loginError" style="display:none;"></div>
+
+        <form id="loginForm" novalidate>
+          <div class="field">
+            <label for="email">Email address</label>
+            <input type="email" id="email" name="email" placeholder="you@company.com" autocomplete="username" required />
+          </div>
+
+          <div class="field">
+            <label for="password">Password</label>
+            <div class="password-field">
+              <input type="password" id="password" name="password" placeholder="••••••••" autocomplete="current-password" required />
+              <button type="button" class="password-toggle" id="togglePassword" aria-label="Show password"></button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block submit-btn" id="loginSubmit">
+            Sign in
+          </button>
+        </form>
+
+        <div class="login-hint">
+          <strong>First time here?</strong> On first launch the system creates a default administrator account. Check your server console log for the generated credentials, then sign in and change the password right away.
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Already logged in? Skip straight to dashboard.
+    if (API.isLoggedIn()) {
+      location.href = 'dashboard.html';
+    }
+
+    // AV controls (theme/sound/music) — styled for the dark aside panel.
+    const avHost = document.getElementById('loginAvControls');
+    avHost.innerHTML = renderAvControls();
+    avHost.querySelectorAll('.theme-toggle, .av-toggle').forEach((el) => {
+      el.style.background = 'rgba(255,255,255,0.06)';
+      el.style.borderColor = 'rgba(255,255,255,0.16)';
+      el.style.color = 'rgba(255,255,255,0.85)';
+    });
+    wireAvControls();
+
+    // Mobile fallback (aside is hidden on small screens via CSS)
+    const avHostMobile = document.getElementById('loginAvControlsMobile');
+    if (window.matchMedia('(max-width: 880px)').matches) {
+      avHostMobile.style.display = 'flex';
+      avHostMobile.innerHTML = renderAvControls();
+      wireAvControls();
+    }
+
+    const toggleBtn = document.getElementById('togglePassword');
+    const pwInput = document.getElementById('password');
+    toggleBtn.innerHTML = Icons.eye;
+    let visible = false;
+    toggleBtn.addEventListener('click', () => {
+      visible = !visible;
+      pwInput.type = visible ? 'text' : 'password';
+      toggleBtn.innerHTML = visible ? Icons.eyeOff : Icons.eye;
+      toggleBtn.setAttribute('aria-label', visible ? 'Hide password' : 'Show password');
+    });
+
+    const form = document.getElementById('loginForm');
+    const errorBox = document.getElementById('loginError');
+    const submitBtn = document.getElementById('loginSubmit');
+
+    function showError(message) {
+      errorBox.style.display = 'flex';
+      errorBox.className = 'login-error';
+      errorBox.innerHTML = `${Icons.alert}<span>${escapeHtml(message)}</span>`;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorBox.style.display = 'none';
+
+      const email = document.getElementById('email').value.trim();
+      const password = pwInput.value;
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Signing in…';
+
+      try {
+        const result = await API.login(email, password);
+        API.setSession(result);
+        location.href = 'dashboard.html';
+      } catch (err) {
+        showError(err.message || 'Incorrect email or password');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Sign in';
+      }
+    });
+  </script>
+</body>
+</html>

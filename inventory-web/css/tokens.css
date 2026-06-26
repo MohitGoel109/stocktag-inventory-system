@@ -1,0 +1,118 @@
+/* ============================================================
+   Inventory — Design Tokens
+   Subject: warehouse / stockroom operations tool.
+   Palette: ink navy + warm paper + amber tag accent.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap');
+
+:root {
+  /* Color */
+  --ink-900: #15213B;
+  --ink-800: #1D2C4D;
+  --ink-700: #283A61;
+  --paper: #FAF7F0;
+  --paper-dim: #F1ECE0;
+  --card: #FFFFFF;
+  --amber: #E8923C;
+  --amber-dark: #C97324;
+  --stock-green: #3D8361;
+  --stock-green-bg: #E7F2EC;
+  --alert-rust: #C44536;
+  --alert-rust-bg: #FBE9E6;
+  --slate: #5B6478;
+  --slate-light: #8B93A6;
+  --line: #E5E0D3;
+  --line-strong: #D4CDB9;
+
+  /* Type */
+  --font-display: 'Manrope', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Scale */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  --shadow-sm: 0 1px 2px rgba(21, 33, 59, 0.06);
+  --shadow-md: 0 4px 16px rgba(21, 33, 59, 0.08);
+  --shadow-lg: 0 12px 32px rgba(21, 33, 59, 0.14);
+
+  --sidebar-w: 248px;
+  --topbar-h: 64px;
+  --tabbar-h: 64px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--paper);
+  color: var(--ink-900);
+  -webkit-font-smoothing: antialiased;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  color: var(--ink-900);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+a { color: inherit; text-decoration: none; }
+
+button { font-family: inherit; }
+
+/* Safety net: any inline SVG icon without a more specific size rule
+   defaults to a sane 18px so a missing CSS rule can't balloon an icon
+   to its raw viewBox dimensions. */
+svg { width: 18px; height: 18px; display: inline-block; vertical-align: middle; }
+
+::selection {
+  background: var(--amber);
+  color: var(--ink-900);
+}
+
+/* Visible keyboard focus everywhere */
+:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Scrollbar (webkit) - subtle, on-brand */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 10px;
+  border: 2px solid var(--paper);
+}
+
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+}

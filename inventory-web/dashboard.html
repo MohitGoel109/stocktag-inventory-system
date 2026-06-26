@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  <script>(function(){var t=localStorage.getItem("inv_theme");if(t==="tavern"){document.documentElement.setAttribute("data-theme","tavern");}})();</script>
+  <title>Dashboard · StockTag Inventory</title>
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/table.css" />
+  <link rel="stylesheet" href="css/modal.css" />
+  <link rel="stylesheet" href="css/animations.css" />
+  <link rel="stylesheet" href="css/theme-tavern.css" />
+</head>
+<body>
+  <script src="js/api.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/shell.js"></script>
+  <script>
+    if (!requireAuth()) { document.write(''); }
+  </script>
+
+  <script>
+    renderShell({ activeId: 'dashboard', pageTitle: 'Dashboard', crumb: 'Overview' });
+
+    async function load() {
+      const root = pageRoot();
+      root.innerHTML = `<div class="loading-row"><div class="spinner"></div> Loading dashboard…</div>`;
+
+      try {
+        const stats = await API.getDashboardStats();
+        render(stats);
+      } catch (err) {
+        root.innerHTML = `
+          <div class="empty-state">
+            <div class="icon-wrap">${Icons.alert}</div>
+            <h4>Couldn't load the dashboard</h4>
+            <p>${escapeHtml(err.message)}</p>
+            <button class="btn btn-secondary" onclick="load()">Try again</button>
+          </div>`;
+      }
+    }
+
+    function render(stats) {
+      const root = pageRoot();
+
+      root.innerHTML = `
+        <div class="stat-grid">
+          <div class="stat-tile">
+            <div class="label">Products</div>
+            <div class="value mono">${stats.totalProducts}</div>
+          </div>
+          <div class="stat-tile">
+            <div class="label">Categories</div>
+            <div class="value mono">${stats.totalCategories}</div>
+          </div>
+          <div class="stat-tile">
+            <div class="label">Customers</div>
+            <div class="value mono">${stats.totalCustomers}</div>
+          </div>
+          <div class="stat-tile">
+            <div class="label">Orders placed</div>
+            <div class="value mono accent">${stats.totalOrders}</div>
+          </div>
+          <div class="stat-tile">
+            <div class="label">Total revenue</div>
+            <div class="value mono success">${fmtMoney(stats.totalRevenue)}</div>
+          </div>
+          <div class="stat-tile">
+            <div class="label">Low stock alerts</div>
+            <div class="value mono ${stats.lowStockProducts.length ? 'danger' : ''}">${stats.lowStockProducts.length}</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3>Low stock products</h3>
+            <a href="products.html" class="btn btn-secondary btn-sm">View all products</a>
+          </div>
+          <div class="card-body" style="padding:0;">
+            ${renderLowStockTable(stats.lowStockProducts)}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderLowStockTable(products) {
+      if (!products.length) {
+        return `
+          <div class="empty-state">
+            <div class="icon-wrap">${Icons.check}</div>
+            <h4>Stock levels look healthy</h4>
+            <p>No products are currently at or below the low-stock threshold.</p>
+          </div>`;
+      }
+
+      const rows = products
+        .map(
+          (p) => `
+        <tr>
+          <td data-label="Product" class="cell-primary">${escapeHtml(p.name)}</td>
+          <td data-label="Category" class="cell-muted">${escapeHtml(p.categoryName)}</td>
+          <td data-label="Quantity" class="cell-mono"><span class="badge badge-danger">${p.quantity} left</span></td>
+          <td data-label="Price" class="cell-mono">${fmtMoney(p.price)}</td>
+        </tr>`
+        )
+        .join('');
+
+      return `
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>Product</th><th>Category</th><th>Quantity</th><th>Price</th></tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+    }
+
+    load();
+  </script>
+</body>
+</html>

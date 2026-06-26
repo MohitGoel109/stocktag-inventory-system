@@ -1,0 +1,279 @@
+/* ============================================================
+   Layout shell — sidebar (desktop) / bottom tab bar (mobile)
+   ============================================================ */
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ---------- Sidebar (desktop) ---------- */
+.sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  background: var(--ink-900);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 40;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 22px 22px 18px;
+}
+
+.sidebar-brand .mark {
+  width: 34px; height: 34px;
+  border-radius: var(--radius-sm);
+  background: var(--amber);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  color: var(--ink-900);
+  font-size: 16px;
+  position: relative;
+}
+/* shelf-tag notch */
+.sidebar-brand .mark::after {
+  content: "";
+  position: absolute;
+  right: -5px; top: 50%;
+  transform: translateY(-50%);
+  width: 0; height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 5px solid var(--amber);
+}
+
+.sidebar-brand .name {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+}
+.sidebar-brand .name span {
+  display: block;
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 11px;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-top: 1px;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 8px 12px;
+  overflow-y: auto;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  border-radius: var(--radius-sm);
+  color: rgba(255,255,255,0.68);
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 2px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  position: relative;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.nav-item svg { flex-shrink: 0; width: 18px; height: 18px; }
+
+.nav-item:hover {
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+}
+
+.nav-item.active {
+  background: rgba(232,146,60,0.14);
+  color: #fff;
+}
+
+.nav-item.active::before {
+  content: "";
+  position: absolute;
+  left: -12px; top: 6px; bottom: 6px;
+  width: 3px;
+  background: var(--amber);
+  border-radius: 0 3px 3px 0;
+}
+
+.nav-section-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+  padding: 16px 12px 6px;
+}
+
+.sidebar-footer {
+  padding: 14px 16px 18px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-chip .avatar {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: var(--ink-700);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--amber);
+  flex-shrink: 0;
+}
+
+.user-chip .meta { min-width: 0; flex: 1; }
+.user-chip .meta .uname {
+  font-size: 13px; font-weight: 700; color: #fff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.user-chip .meta .urole {
+  font-size: 11.5px; color: rgba(255,255,255,0.5);
+  text-transform: capitalize;
+}
+
+.logout-btn {
+  margin-top: 12px;
+  width: 100%;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 9px;
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.8);
+  border: 1px solid rgba(255,255,255,0.08);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+.logout-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+.logout-btn:hover { background: rgba(196,69,54,0.25); color: #fff; }
+
+/* ---------- Main content area ---------- */
+.main-area {
+  flex: 1;
+  margin-left: var(--sidebar-w);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  height: var(--topbar-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 28px;
+  position: sticky;
+  top: 0;
+  background: var(--paper);
+  z-index: 30;
+  border-bottom: 1px solid var(--line);
+}
+
+.topbar-title h1 { font-size: 21px; }
+.topbar-title .crumb {
+  font-size: 12.5px;
+  color: var(--slate);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.mobile-menu-btn { display: none; }
+
+.content {
+  padding: 24px 28px 100px;
+  flex: 1;
+}
+
+/* ---------- Mobile bottom tab bar ---------- */
+.tabbar {
+  display: none;
+}
+
+/* ============================================================
+   Responsive breakpoints
+   ============================================================ */
+@media (max-width: 980px) {
+  .sidebar { display: none; }
+  .main-area { margin-left: 0; }
+
+  .content { padding: 18px 16px 90px; }
+  .topbar { padding: 0 16px; }
+
+  .tabbar {
+    display: flex;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: var(--tabbar-h);
+    background: var(--ink-900);
+    z-index: 40;
+    padding: 6px 4px;
+    padding-bottom: max(6px, env(safe-area-inset-bottom));
+    box-shadow: 0 -4px 20px rgba(21,33,59,0.18);
+  }
+
+  .tabbar .nav-item {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    font-size: 10.5px;
+    padding: 6px 4px;
+    flex: 1;
+    border-radius: var(--radius-sm);
+  }
+
+  .tabbar .nav-item.active::before {
+    left: 50%; top: -6px; bottom: auto;
+    transform: translateX(-50%);
+    width: 22px; height: 3px;
+    border-radius: 3px;
+  }
+
+  .tabbar .nav-item svg { width: 20px; height: 20px; }
+
+  .mobile-menu-btn {
+    display: flex;
+    align-items: center; justify-content: center;
+    width: 38px; height: 38px;
+    border-radius: var(--radius-sm);
+    background: var(--card);
+    border: 1px solid var(--line);
+    cursor: pointer;
+  }
+}
+
+@media (max-width: 560px) {
+  .topbar-title h1 { font-size: 18px; }
+  .content { padding: 14px 12px 90px; }
+}
+
+@media (max-width: 700px) {
+  .theme-toggle span { display: none; }
+  .theme-toggle { padding: 8px; }
+  .topbar { flex-wrap: wrap; height: auto; min-height: var(--topbar-h); padding-top: 10px; padding-bottom: 10px; gap: 8px; }
+}

@@ -1,0 +1,111 @@
+/* ============================================================
+   Animations — entrance transitions, micro-interactions
+   Respects prefers-reduced-motion (see tokens.css global rule)
+   ============================================================ */
+
+/* Page content fade/rise on load */
+@keyframes content-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.content > * { animation: content-in 320ms cubic-bezier(0.2, 0.8, 0.3, 1) backwards; }
+.content > *:nth-child(1) { animation-delay: 0ms; }
+.content > *:nth-child(2) { animation-delay: 40ms; }
+.content > *:nth-child(3) { animation-delay: 80ms; }
+
+/* Stat tiles cascade in */
+.stat-grid .stat-tile {
+  animation: content-in 360ms cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
+}
+.stat-grid .stat-tile:nth-child(1) { animation-delay: 0ms; }
+.stat-grid .stat-tile:nth-child(2) { animation-delay: 50ms; }
+.stat-grid .stat-tile:nth-child(3) { animation-delay: 100ms; }
+.stat-grid .stat-tile:nth-child(4) { animation-delay: 150ms; }
+.stat-grid .stat-tile:nth-child(5) { animation-delay: 200ms; }
+.stat-grid .stat-tile:nth-child(6) { animation-delay: 250ms; }
+
+.stat-tile {
+  transition: transform 160ms cubic-bezier(0.2, 0.8, 0.3, 1), box-shadow 160ms ease;
+}
+.stat-tile:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Table rows stagger in */
+.data-table tbody tr {
+  animation: content-in 240ms cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
+}
+.data-table tbody tr:nth-child(n+1) { animation-delay: calc((var(--row-index, 0)) * 25ms); }
+
+/* Buttons: gentle press feedback already via :active transform; add ripple-free glow */
+.btn-primary {
+  position: relative;
+  overflow: hidden;
+}
+.btn-primary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.25);
+  opacity: 0;
+  transition: opacity 300ms ease;
+  pointer-events: none;
+}
+.btn-primary:active::after { opacity: 1; transition: none; }
+
+/* Nav items slide-highlight */
+.nav-item {
+  transition: background-color 140ms ease, color 140ms ease, padding-left 140ms ease;
+}
+.nav-item:hover:not(.active) { padding-left: 16px; }
+
+/* Cards lift slightly on hover where interactive */
+tr[onclick] { transition: background-color 120ms ease; }
+
+/* Modal/overlay already animated in modal.css; add subtle scale-pop to confirm icon */
+.confirm-icon {
+  animation: pop-in 240ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes pop-in {
+  from { transform: scale(0.5); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* Low-stock badge subtle pulse to draw the eye, not annoying/looping forever fast */
+.badge-danger {
+  animation: badge-pulse 2.4s ease-in-out infinite;
+}
+@keyframes badge-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(196, 69, 54, 0); }
+  50% { box-shadow: 0 0 0 4px rgba(196, 69, 54, 0.12); }
+}
+
+/* Spinner already rotates; add fade-in for loading rows */
+.loading-row { animation: content-in 200ms ease; }
+
+/* Toggle switches (theme/sound) gentle icon rotation on toggle */
+.theme-toggle svg, .av-toggle svg {
+  transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.theme-toggle:active svg, .av-toggle:active svg {
+  transform: rotate(-18deg) scale(0.9);
+}
+
+/* Cart line items in new-order page animate in on add */
+.cart-line {
+  animation: cart-line-in 220ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+@keyframes cart-line-in {
+  from { opacity: 0; transform: translateX(-6px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.product-pick { transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease; }
+.product-pick:hover:not(:disabled) { box-shadow: var(--shadow-sm); }
+
+@media (prefers-reduced-motion: reduce) {
+  .content > *, .stat-tile, .data-table tbody tr, .cart-line, .confirm-icon, .badge-danger {
+    animation: none !important;
+  }
+}

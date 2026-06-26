@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  <script>(function(){var t=localStorage.getItem("inv_theme");if(t==="tavern"){document.documentElement.setAttribute("data-theme","tavern");}})();</script>
+  <title>Products · StockTag Inventory</title>
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/table.css" />
+  <link rel="stylesheet" href="css/modal.css" />
+  <link rel="stylesheet" href="css/animations.css" />
+  <link rel="stylesheet" href="css/theme-tavern.css" />
+</head>
+<body>
+  <script src="js/api.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/shell.js"></script>
+  <script>
+    if (!requireAuth()) { document.write(''); }
+  </script>
+
+  <script>
+    renderShell({ activeId: 'products', pageTitle: 'Products', crumb: 'Catalog' });
+    setTopbarActions(`<button class="btn btn-primary" id="addBtn">${Icons.plus} New product</button>`);
+
+    let products = [];
+    let categories = [];
+    let searchTerm = '';
+
+    async function load() {
+      const root = pageRoot();
+      root.innerHTML = `<div class="loading-row"><div class="spinner"></div> Loading products…</div>`;
+      try {
+        [products, categories] = await Promise.all([API.listProducts(), API.listCategories()]);
+        render();
+      } catch (err) {
+        root.innerHTML = `<div class="empty-state"><div class="icon-wrap">${Icons.alert}</div><h4>Couldn't load products</h4><p>${escapeHtml(err.message)}</p></div>`;
+      }
+    }
+
+    function render() {
+      const root = pageRoot();
+      const filtered = searchTerm
+        ? products.filter((p) => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
+        : products;
+
+      const toolbar = `
+        <div class="card-header" style="border-bottom:1px solid var(--line); margin:-1px -1px 0;">
+          <div class="search-box">
+            ${Icons.search}
+            <input type="text" id="searchInput" placeholder="Search products…" value="${escapeHtml(searchTerm)}" />
+          </div>
+          <span class="badge badge-neutral">${filtered.length} of ${products.length} products</span>
+        </div>`;
+
+      if (!products.length) {
+        root.innerHTML = `
+          <div class="card">
+            <div class="empty-state">
+              <div class="icon-wrap">${Icons.box}</div>
+              <h4>No products yet</h4>
+              <p>Add your first product to start tracking stock.</p>
+              ${categories.length
+                ? `<button class="btn btn-primary" onclick="openForm()">${Icons.plus} Add a product</button>`
+                : `<p style="color:var(--alert-rust); font-weight:600;">Create a category first, then add products to it.</p>`}
+            </div>
+          </div>`;
+        return;
+      }
+
+      const rows = filtered
+        .map((p) => {
+          const stockBadge = p.lowStock
+            ? `<span class="badge badge-danger">${p.quantity} left</span>`
+            : `<span class="badge badge-success">${p.quantity} in stock</span>`;
+          return `
+        <tr>
+          <td data-label="Product" class="cell-primary">${escapeHtml(p.name)}</td>
+          <td data-label="Category" class="cell-muted">${escapeHtml(p.categoryName)}</td>
+          <td data-label="Quantity">${stockBadge}</td>
+          <td data-label="Price" class="cell-mono">${fmtMoney(p.price)}</td>
+          <td data-label="Actions" class="cell-actions">
+            <div class="row-actions">
+              <button onclick="openForm(${p.id})" aria-label="Edit ${escapeHtml(p.name)}">${Icons.edit}</button>
+              <button class="danger" onclick="confirmDelete(${p.id})" aria-label="Delete ${escapeHtml(p.name)}">${Icons.trash}</button>
+            </div>
+          </td>
+        </tr>`;
+        })
+        .join('');
+
+      root.innerHTML = `
+        <div class="card">
+          ${toolbar}
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Product</th><th>Category</th><th>Quantity</th><th>Price</th><th></th></tr></thead>
+              <tbody>${rows || `<tr><td colspan="5" style="text-align:center; padding:32px; color:var(--slate);">No products match "${escapeHtml(searchTerm)}"</td></tr>`}</tbody>
+            </table>
+          </div>
+        </div>`;
+
+      document.getElementById('searchInput').addEventListener('input', (e) => {
+        searchTerm = e.target.value;
+        render();
+        document.getElementById('searchInput').focus();
+        const val = document.getElementById('searchInput').value;
+        document.getElementById('searchInput').setSelectionRange(val.length, val.length);
+      });
+    }
+
+    function categoryOptions(selectedId) {
+      return categories
+        .map((c) => `<option value="${c.id}" ${c.id === selectedId ? 'selected' : ''}>${escapeHtml(c.name)}</option>`)
+        .join('');
+    }
+
+    function openForm(id) {
+      if (!categories.length) {
+        Toast.error('Create a category first before adding products.');
+        return;
+      }
+      const editing = products.find((p) => p.id === id);
+
+      const overlay = Modal.open(`
+        <div class="modal-header">
+          <h3>${editing ? 'Edit product' : 'New product'}</h3>
+          <button class="modal-close" id="closeModal">${Icons.close}</button>
+        </div>
+        <div class="modal-body">
+          <div class="field">
+            <label for="pName">Product name</label>
+            <input id="pName" type="text" placeholder="e.g. Basmati Rice 5kg" value="${editing ? escapeHtml(editing.name) : ''}" />
+          </div>
+          <div class="input-row">
+            <div class="field">
+              <label for="pQty">Quantity in stock</label>
+              <input id="pQty" type="number" min="0" step="1" value="${editing ? editing.quantity : 0}" />
+            </div>
+            <div class="field">
+              <label for="pPrice">Price</label>
+              <input id="pPrice" type="number" min="0" step="0.01" value="${editing ? editing.price : ''}" />
+            </div>
+          </div>
+          <div class="field">
+            <label for="pCategory">Category</label>
+            <select id="pCategory">${categoryOptions(editing ? editing.categoryId : categories[0].id)}</select>
+          </div>
+          <div class="field">
+            <label for="pDesc">Description <span style="font-weight:400; color:var(--slate-light);">(optional)</span></label>
+            <textarea id="pDesc" rows="3" placeholder="Notes about this product…">${editing ? escapeHtml(editing.description || '') : ''}</textarea>
+          </div>
+          <div class="error-text" id="formError" style="display:none;"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" id="cancelBtn">Cancel</button>
+          <button class="btn btn-primary" id="saveBtn">${editing ? 'Save changes' : 'Create product'}</button>
+        </div>
+      `, { size: 'modal-lg' });
+
+      overlay.querySelector('#closeModal').onclick = Modal.close;
+      overlay.querySelector('#cancelBtn').onclick = Modal.close;
+      overlay.querySelector('#pName').focus();
+
+      overlay.querySelector('#saveBtn').onclick = async () => {
+        const name = overlay.querySelector('#pName').value.trim();
+        const quantity = parseInt(overlay.querySelector('#pQty').value, 10);
+        const price = parseFloat(overlay.querySelector('#pPrice').value);
+        const categoryId = parseInt(overlay.querySelector('#pCategory').value, 10);
+        const description = overlay.querySelector('#pDesc').value.trim();
+        const errEl = overlay.querySelector('#formError');
+
+        if (!name || isNaN(quantity) || quantity < 0 || isNaN(price) || price < 0) {
+          errEl.textContent = 'Please fill in a valid name, quantity, and price.';
+          errEl.style.display = 'block';
+          return;
+        }
+
+        const btn = overlay.querySelector('#saveBtn');
+        btn.disabled = true;
+        btn.textContent = 'Saving…';
+
+        const dto = { name, quantity, price, description, categoryId };
+
+        try {
+          if (editing) {
+            await API.updateProduct(editing.id, dto);
+            Toast.success('Product updated');
+          } else {
+            await API.createProduct(dto);
+            Toast.success('Product created');
+          }
+          Modal.close();
+          load();
+        } catch (err) {
+          errEl.textContent = err.message;
+          errEl.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = editing ? 'Save changes' : 'Create product';
+        }
+      };
+    }
+
+    function confirmDelete(id) {
+      const p = products.find((x) => x.id === id);
+      Modal.confirm({
+        title: `Delete "${p.name}"?`,
+        message: 'This removes the product permanently. Past orders that include it will keep their historical record.',
+        confirmLabel: 'Delete product',
+        onConfirm: async () => {
+          await API.deleteProduct(id);
+          Toast.success('Product deleted');
+          load();
+        },
+      });
+    }
+
+    document.getElementById('addBtn').addEventListener('click', () => openForm());
+
+    load();
+  </script>
+</body>
+</html>

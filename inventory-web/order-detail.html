@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  <script>(function(){var t=localStorage.getItem("inv_theme");if(t==="tavern"){document.documentElement.setAttribute("data-theme","tavern");}})();</script>
+  <title>Order detail · StockTag Inventory</title>
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/table.css" />
+  <link rel="stylesheet" href="css/modal.css" />
+  <link rel="stylesheet" href="css/animations.css" />
+  <link rel="stylesheet" href="css/theme-tavern.css" />
+
+  <style>
+    /* ── Bill preview modal ── */
+    .bill-wrap {
+      font-family: 'Inter', Arial, sans-serif;
+      color: #111;
+      width: 100%;
+      max-width: 560px;
+      margin: 0 auto;
+      padding: 0;
+    }
+
+    .bill-header {
+      text-align: center;
+      border-bottom: 2px solid #111;
+      padding-bottom: 14px;
+      margin-bottom: 14px;
+    }
+    .bill-header .shop-name {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      color: #111;
+      margin: 0 0 2px;
+    }
+    .bill-header .shop-sub {
+      font-size: 12px;
+      color: #555;
+      margin: 0;
+    }
+    .bill-header .bill-title {
+      margin-top: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #333;
+    }
+
+    .bill-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 16px;
+      margin-bottom: 16px;
+      font-size: 12.5px;
+    }
+    .bill-meta .lbl { color: #666; font-weight: 600; }
+    .bill-meta .val { color: #111; font-weight: 700; }
+
+    .bill-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      margin-bottom: 12px;
+    }
+    .bill-table thead th {
+      background: #111;
+      color: #fff;
+      padding: 7px 10px;
+      text-align: left;
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .bill-table thead th:last-child { text-align: right; }
+    .bill-table tbody td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #eee;
+      color: #222;
+    }
+    .bill-table tbody td:last-child { text-align: right; font-weight: 700; }
+    .bill-table tbody tr:last-child td { border-bottom: 2px solid #111; }
+
+    .bill-totals {
+      width: 100%;
+      margin-left: auto;
+      font-size: 13px;
+    }
+    .bill-totals tr td { padding: 4px 10px; }
+    .bill-totals tr td:first-child { color: #555; }
+    .bill-totals tr td:last-child { text-align: right; font-weight: 700; color: #111; }
+    .bill-totals .grand-total td {
+      font-size: 15px;
+      font-weight: 800;
+      color: #111;
+      border-top: 2px solid #111;
+      padding-top: 8px;
+    }
+
+    .bill-footer {
+      text-align: center;
+      margin-top: 20px;
+      padding-top: 12px;
+      border-top: 1px dashed #ccc;
+      font-size: 12px;
+      color: #888;
+    }
+
+    /* ── Print styles — only bill visible, everything else hidden ── */
+    @media print {
+      body * { visibility: hidden !important; }
+      #billPrintArea, #billPrintArea * { visibility: visible !important; }
+      #billPrintArea {
+        position: fixed !important;
+        top: 0; left: 0;
+        width: 100% !important;
+        padding: 32px !important;
+        background: #fff !important;
+        z-index: 99999 !important;
+      }
+      .bill-print-btn { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <script src="js/api.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/shell.js"></script>
+  <script>
+    if (!requireAuth()) { document.write(''); }
+  </script>
+
+  <!-- Hidden print area — populated when bill is generated -->
+  <div id="billPrintArea" style="display:none;"></div>
+
+  <script>
+    renderShell({ activeId: 'orders', pageTitle: 'Order detail', crumb: 'Sales' });
+
+    const params = new URLSearchParams(location.search);
+    const orderId = params.get('id');
+
+    async function load() {
+      const root = pageRoot();
+      root.innerHTML = `<div class="loading-row"><div class="spinner"></div> Loading order…</div>`;
+
+      if (!orderId) {
+        root.innerHTML = `<div class="empty-state"><div class="icon-wrap">${Icons.alert}</div><h4>No order specified</h4></div>`;
+        return;
+      }
+
+      try {
+        const order = await API.getOrder(orderId);
+        render(order);
+      } catch (err) {
+        root.innerHTML = `<div class="empty-state"><div class="icon-wrap">${Icons.alert}</div><h4>Couldn't load this order</h4><p>${escapeHtml(err.message)}</p></div>`;
+      }
+    }
+
+    function render(order) {
+      const root = pageRoot();
+
+      // Topbar actions — back button + print bill button
+      setTopbarActions(`
+        <a href="orders.html" class="btn btn-secondary">← Back to orders</a>
+        <button class="btn btn-primary" onclick="printBill(currentOrder)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;">
+            <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+            <rect x="6" y="14" width="12" height="8"/>
+          </svg>
+          Print Bill
+        </button>
+      `);
+
+      const itemRows = order.items.map((i) => `
+        <tr>
+          <td data-label="Product" class="cell-primary">${escapeHtml(i.productName)}</td>
+          <td data-label="Quantity" class="cell-mono">${i.quantity}</td>
+          <td data-label="Unit price" class="cell-mono">${fmtMoney(i.unitPrice)}</td>
+          <td data-label="Line total" class="cell-mono cell-primary">${fmtMoney(i.lineTotal)}</td>
+        </tr>`).join('');
+
+      root.innerHTML = `
+        <div class="card" style="margin-bottom:18px;">
+          <div class="card-body">
+            <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+              <div>
+                <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--slate);margin-bottom:6px;">Order code</div>
+                <div class="mono" style="font-size:20px;font-weight:600;">${escapeHtml(order.orderCode)}</div>
+              </div>
+              <div>
+                <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--slate);margin-bottom:6px;">Customer</div>
+                <div style="font-size:16px;font-weight:700;">${escapeHtml(order.customerName)}</div>
+              </div>
+              <div>
+                <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--slate);margin-bottom:6px;">Placed on</div>
+                <div style="font-size:14px;">${fmtDate(order.orderDate)}</div>
+              </div>
+              <div>
+                <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--slate);margin-bottom:6px;">Total paid</div>
+                <div class="mono" style="font-size:20px;font-weight:700;color:var(--stock-green);">${fmtMoney(order.totalPaid)}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3>Items in this order</h3>
+            <button class="btn btn-primary btn-sm" onclick="printBill(currentOrder)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;">
+                <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                <rect x="6" y="14" width="12" height="8"/>
+              </svg>
+              Print / Save PDF
+            </button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Product</th><th>Quantity</th><th>Unit price</th><th>Line total</th></tr></thead>
+              <tbody>${itemRows}</tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    // ── Bill generator ──
+    function printBill(order) {
+      if (!order) return;
+
+      const itemRows = order.items.map((item, idx) => `
+        <tr>
+          <td>${idx + 1}</td>
+          <td>${escapeHtml(item.productName)}</td>
+          <td style="text-align:center;">${item.quantity}</td>
+          <td style="text-align:right;">${fmtMoney(item.unitPrice)}</td>
+          <td style="text-align:right;">${fmtMoney(item.lineTotal)}</td>
+        </tr>`).join('');
+
+      const now = new Date();
+      const printDate = now.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) +
+                        ' ' + now.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+
+      const billHtml = `
+        <div class="bill-wrap">
+          <div class="bill-header">
+            <p class="shop-name">StockTag Enterprises</p>
+            <p class="shop-sub">Inventory & Sales Management</p>
+            <p class="bill-title">Tax Invoice / Bill of Sale</p>
+          </div>
+
+          <div class="bill-meta">
+            <span class="lbl">Order No.</span>
+            <span class="val">${escapeHtml(order.orderCode)}</span>
+            <span class="lbl">Customer</span>
+            <span class="val">${escapeHtml(order.customerName)}</span>
+            <span class="lbl">Order Date</span>
+            <span class="val">${fmtDate(order.orderDate)}</span>
+            <span class="lbl">Print Date</span>
+            <span class="val">${printDate}</span>
+          </div>
+
+          <table class="bill-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Item</th>
+                <th style="text-align:center;">Qty</th>
+                <th style="text-align:right;">Unit Price</th>
+                <th style="text-align:right;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>${itemRows}</tbody>
+          </table>
+
+          <table class="bill-totals">
+            <tr>
+              <td>Subtotal</td>
+              <td>${fmtMoney(order.totalPaid)}</td>
+            </tr>
+            <tr>
+              <td>Tax (incl.)</td>
+              <td>—</td>
+            </tr>
+            <tr class="grand-total">
+              <td>Grand Total</td>
+              <td>${fmtMoney(order.totalPaid)}</td>
+            </tr>
+          </table>
+
+          <div class="bill-footer">
+            <p>Thank you for your purchase!</p>
+            <p>Generated by StockTag Enterprises · ${printDate}</p>
+          </div>
+        </div>
+      `;
+
+      // Inject into print area and trigger print
+      const printArea = document.getElementById('billPrintArea');
+      printArea.innerHTML = billHtml;
+      printArea.style.display = 'block';
+      window.print();
+      // Hide again after printing dialog closes
+      setTimeout(() => { printArea.style.display = 'none'; }, 1000);
+    }
+
+    // Store order reference for the print button
+    let currentOrder = null;
+    const _origLoad = load;
+
+    async function load() {
+      const root = pageRoot();
+      root.innerHTML = `<div class="loading-row"><div class="spinner"></div> Loading order…</div>`;
+
+      if (!orderId) {
+        root.innerHTML = `<div class="empty-state"><div class="icon-wrap">${Icons.alert}</div><h4>No order specified</h4></div>`;
+        return;
+      }
+
+      try {
+        const order = await API.getOrder(orderId);
+        currentOrder = order;
+        render(order);
+      } catch (err) {
+        root.innerHTML = `<div class="empty-state"><div class="icon-wrap">${Icons.alert}</div><h4>Couldn't load this order</h4><p>${escapeHtml(err.message)}</p></div>`;
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  <script>(function(){var t=localStorage.getItem("inv_theme");if(t==="tavern"){document.documentElement.setAttribute("data-theme","tavern");}})();</script>
+  <title>Customers · StockTag Inventory</title>
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/table.css" />
+  <link rel="stylesheet" href="css/modal.css" />
+  <link rel="stylesheet" href="css/animations.css" />
+  <link rel="stylesheet" href="css/theme-tavern.css" />
+</head>
+<body>
+  <script src="js/api.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/shell.js"></script>
+  <script>
+    if (!requireAuth()) { document.write(''); }
+  </script>
+
+  <script>
+    renderShell({ activeId: 'customers', pageTitle: 'Customers', crumb: 'People' });
+    setTopbarActions(`<button class="btn btn-primary" id="addBtn">${Icons.plus} New customer</button>`);
+
+    let customers = [];
+    let searchTerm = '';
+
+    async function load() {
+      const root = pageRoot();
+      root.innerHTML = `<div class="loading-row"><div class="spinner"></div> Loading customers…</div>`;
+      try {
+        customers = await API.listCustomers();
+        render();
+      } catch (err) {
+        root.innerHTML = `<div class="empty-state"><div class="icon-wrap">${Icons.alert}</div><h4>Couldn't load customers</h4><p>${escapeHtml(err.message)}</p></div>`;
+      }
+    }
+
+    function render() {
+      const root = pageRoot();
+      const filtered = searchTerm
+        ? customers.filter((c) => c.name.toLowerCase().includes(searchTerm.toLowerCase()))
+        : customers;
+
+      if (!customers.length) {
+        root.innerHTML = `
+          <div class="card">
+            <div class="empty-state">
+              <div class="icon-wrap">${Icons.users}</div>
+              <h4>No customers yet</h4>
+              <p>Add a customer so you can start recording orders for them.</p>
+              <button class="btn btn-primary" onclick="openForm()">${Icons.plus} Add a customer</button>
+            </div>
+          </div>`;
+        return;
+      }
+
+      const toolbar = `
+        <div class="card-header" style="border-bottom:1px solid var(--line); margin:-1px -1px 0;">
+          <div class="search-box">
+            ${Icons.search}
+            <input type="text" id="searchInput" placeholder="Search customers…" value="${escapeHtml(searchTerm)}" />
+          </div>
+          <span class="badge badge-neutral">${filtered.length} of ${customers.length} customers</span>
+        </div>`;
+
+      const rows = filtered
+        .map(
+          (c) => `
+        <tr>
+          <td data-label="Name" class="cell-primary">${escapeHtml(c.name)}</td>
+          <td data-label="Mobile" class="cell-mono">${escapeHtml(c.mobileNumber || '—')}</td>
+          <td data-label="Email" class="cell-muted">${escapeHtml(c.email || '—')}</td>
+          <td data-label="Actions" class="cell-actions">
+            <div class="row-actions">
+              <button onclick="openForm(${c.id})" aria-label="Edit ${escapeHtml(c.name)}">${Icons.edit}</button>
+              <button class="danger" onclick="confirmDelete(${c.id})" aria-label="Delete ${escapeHtml(c.name)}">${Icons.trash}</button>
+            </div>
+          </td>
+        </tr>`
+        )
+        .join('');
+
+      root.innerHTML = `
+        <div class="card">
+          ${toolbar}
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Name</th><th>Mobile</th><th>Email</th><th></th></tr></thead>
+              <tbody>${rows || `<tr><td colspan="4" style="text-align:center; padding:32px; color:var(--slate);">No customers match "${escapeHtml(searchTerm)}"</td></tr>`}</tbody>
+            </table>
+          </div>
+        </div>`;
+
+      document.getElementById('searchInput').addEventListener('input', (e) => {
+        searchTerm = e.target.value;
+        render();
+        const input = document.getElementById('searchInput');
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+      });
+    }
+
+    function openForm(id) {
+      const editing = customers.find((c) => c.id === id);
+
+      const overlay = Modal.open(`
+        <div class="modal-header">
+          <h3>${editing ? 'Edit customer' : 'New customer'}</h3>
+          <button class="modal-close" id="closeModal">${Icons.close}</button>
+        </div>
+        <div class="modal-body">
+          <div class="field">
+            <label for="cName">Full name</label>
+            <input id="cName" type="text" placeholder="e.g. Priya Sharma" value="${editing ? escapeHtml(editing.name) : ''}" />
+          </div>
+          <div class="field">
+            <label for="cMobile">Mobile number <span style="font-weight:400; color:var(--slate-light);">(optional)</span></label>
+            <input id="cMobile" type="tel" placeholder="+91 98765 43210" value="${editing ? escapeHtml(editing.mobileNumber || '') : ''}" />
+          </div>
+          <div class="field">
+            <label for="cEmail">Email <span style="font-weight:400; color:var(--slate-light);">(optional)</span></label>
+            <input id="cEmail" type="email" placeholder="customer@email.com" value="${editing ? escapeHtml(editing.email || '') : ''}" />
+          </div>
+          <div class="error-text" id="formError" style="display:none;"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" id="cancelBtn">Cancel</button>
+          <button class="btn btn-primary" id="saveBtn">${editing ? 'Save changes' : 'Create customer'}</button>
+        </div>
+      `);
+
+      overlay.querySelector('#closeModal').onclick = Modal.close;
+      overlay.querySelector('#cancelBtn').onclick = Modal.close;
+      overlay.querySelector('#cName').focus();
+
+      overlay.querySelector('#saveBtn').onclick = async () => {
+        const name = overlay.querySelector('#cName').value.trim();
+        const mobileNumber = overlay.querySelector('#cMobile').value.trim();
+        const email = overlay.querySelector('#cEmail').value.trim();
+        const errEl = overlay.querySelector('#formError');
+
+        if (!name) {
+          errEl.textContent = 'Name is required.';
+          errEl.style.display = 'block';
+          return;
+        }
+
+        const btn = overlay.querySelector('#saveBtn');
+        btn.disabled = true;
+        btn.textContent = 'Saving…';
+
+        const dto = { name, mobileNumber: mobileNumber || null, email: email || null };
+
+        try {
+          if (editing) {
+            await API.updateCustomer(editing.id, dto);
+            Toast.success('Customer updated');
+          } else {
+            await API.createCustomer(dto);
+            Toast.success('Customer created');
+          }
+          Modal.close();
+          load();
+        } catch (err) {
+          errEl.textContent = err.message;
+          errEl.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = editing ? 'Save changes' : 'Create customer';
+        }
+      };
+    }
+
+    function confirmDelete(id) {
+      const c = customers.find((x) => x.id === id);
+      Modal.confirm({
+        title: `Delete "${c.name}"?`,
+        message: 'Customers with existing orders cannot be deleted — remove or reassign their orders first.',
+        confirmLabel: 'Delete customer',
+        onConfirm: async () => {
+          await API.deleteCustomer(id);
+          Toast.success('Customer deleted');
+          load();
+        },
+      });
+    }
+
+    document.getElementById('addBtn').addEventListener('click', () => openForm());
+
+    load();
+  </script>
+</body>
+</html>

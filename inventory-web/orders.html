@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  <script>(function(){var t=localStorage.getItem("inv_theme");if(t==="tavern"){document.documentElement.setAttribute("data-theme","tavern");}})();</script>
+  <title>Orders · StockTag Inventory</title>
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/table.css" />
+  <link rel="stylesheet" href="css/modal.css" />
+  <link rel="stylesheet" href="css/animations.css" />
+  <link rel="stylesheet" href="css/theme-tavern.css" />
+</head>
+<body>
+  <script src="js/api.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/shell.js"></script>
+  <script>
+    if (!requireAuth()) { document.write(''); }
+  </script>
+
+  <script>
+    renderShell({ activeId: 'orders', pageTitle: 'Orders', crumb: 'Sales' });
+    setTopbarActions(`<a href="new-order.html" class="btn btn-primary">${Icons.plus} New order</a>`);
+
+    let orders = [];
+
+    async function load() {
+      const root = pageRoot();
+      root.innerHTML = `<div class="loading-row"><div class="spinner"></div> Loading orders…</div>`;
+      try {
+        orders = await API.listOrders();
+        orders.sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate));
+        render();
+      } catch (err) {
+        root.innerHTML = `<div class="empty-state"><div class="icon-wrap">${Icons.alert}</div><h4>Couldn't load orders</h4><p>${escapeHtml(err.message)}</p></div>`;
+      }
+    }
+
+    function render() {
+      const root = pageRoot();
+
+      if (!orders.length) {
+        root.innerHTML = `
+          <div class="card">
+            <div class="empty-state">
+              <div class="icon-wrap">${Icons.receipt}</div>
+              <h4>No orders yet</h4>
+              <p>Place your first order to see it appear here.</p>
+              <a href="new-order.html" class="btn btn-primary">${Icons.plus} Create an order</a>
+            </div>
+          </div>`;
+        return;
+      }
+
+      const rows = orders
+        .map(
+          (o) => `
+        <tr style="cursor:pointer;" onclick="location.href='order-detail.html?id=${o.id}'">
+          <td data-label="Order" class="cell-primary cell-mono">${escapeHtml(o.orderCode)}</td>
+          <td data-label="Customer">${escapeHtml(o.customerName)}</td>
+          <td data-label="Items"><span class="badge badge-neutral">${o.items.length} item${o.items.length === 1 ? '' : 's'}</span></td>
+          <td data-label="Date" class="cell-muted">${fmtDate(o.orderDate)}</td>
+          <td data-label="Total" class="cell-mono cell-primary">${fmtMoney(o.totalPaid)}</td>
+        </tr>`
+        )
+        .join('');
+
+      root.innerHTML = `
+        <div class="card">
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Order</th><th>Customer</th><th>Items</th><th>Date</th><th>Total</th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div>`;
+    }
+
+    load();
+  </script>
+</body>
+</html>

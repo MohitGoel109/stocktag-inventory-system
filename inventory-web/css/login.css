@@ -1,0 +1,160 @@
+/* ============================================================
+   Login screen
+   ============================================================ */
+
+.login-screen {
+  min-height: 100vh;
+  display: flex;
+}
+
+.login-aside {
+  flex: 1.1;
+  background: var(--ink-900);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 48px;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-aside .brand-mark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.login-aside .brand-mark .mark {
+  width: 38px; height: 38px;
+  border-radius: var(--radius-sm);
+  background: var(--amber);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  color: var(--ink-900);
+}
+.login-aside .brand-mark .name { font-family: var(--font-display); font-weight: 800; font-size: 17px; }
+
+.login-aside .pitch h2 {
+  font-size: clamp(26px, 3.2vw, 38px);
+  line-height: 1.15;
+  max-width: 480px;
+  margin-bottom: 14px;
+  color: #fff;
+}
+.login-aside .pitch p {
+  color: rgba(255,255,255,0.6);
+  font-size: 15px;
+  max-width: 420px;
+  line-height: 1.6;
+}
+
+.login-aside .tag-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.login-aside .tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.75);
+}
+.login-aside .tag-chip svg { width: 14px; height: 14px; color: var(--amber); }
+
+/* decorative grid of shelf-tag notches */
+.login-aside .deco {
+  position: absolute;
+  right: -60px; bottom: -60px;
+  width: 320px; height: 320px;
+  opacity: 0.5;
+}
+
+.login-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: var(--paper);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 380px;
+}
+
+.login-card .eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--amber-dark);
+  margin-bottom: 8px;
+}
+
+.login-card h1 { font-size: 26px; margin-bottom: 8px; }
+.login-card .sub { color: var(--slate); font-size: 14px; margin-bottom: 28px; }
+
+.login-card .field input { padding: 12px 14px; font-size: 14.5px; }
+
+.password-field { position: relative; }
+.password-toggle {
+  position: absolute;
+  right: 10px; top: 50%;
+  transform: translateY(-50%);
+  background: none; border: none;
+  color: var(--slate-light);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+}
+
+.login-error {
+  background: var(--alert-rust-bg);
+  color: var(--alert-rust);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 11px 14px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.login-error svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; }
+
+.login-card .submit-btn { margin-top: 6px; }
+
+.login-hint {
+  margin-top: 22px;
+  padding: 14px;
+  background: var(--paper-dim);
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  color: var(--slate);
+  line-height: 1.6;
+}
+.login-hint strong { color: var(--ink-900); }
+
+@media (max-width: 880px) {
+  .login-aside { display: none; }
+  .login-main { padding: 24px; }
+  #loginAvControls {
+    position: static !important;
+    margin-bottom: 20px;
+    justify-content: center;
+  }
+  #loginAvControls .theme-toggle,
+  #loginAvControls .av-toggle {
+    background: var(--card) !important;
+    border-color: var(--line-strong) !important;
+    color: var(--ink-900) !important;
+  }
+}

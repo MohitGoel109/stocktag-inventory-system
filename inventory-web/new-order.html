@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  <script>(function(){var t=localStorage.getItem("inv_theme");if(t==="tavern"){document.documentElement.setAttribute("data-theme","tavern");}})();</script>
+  <title>New order · StockTag Inventory</title>
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/table.css" />
+  <link rel="stylesheet" href="css/modal.css" />
+  <link rel="stylesheet" href="css/animations.css" />
+  <link rel="stylesheet" href="css/theme-tavern.css" />
+  <style>
+    .order-grid {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+    @media (max-width: 980px) {
+      .order-grid { grid-template-columns: 1fr; }
+    }
+    .product-pick-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 10px;
+    }
+    .product-pick {
+      border: 1.5px solid var(--line);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      cursor: pointer;
+      background: var(--card);
+      transition: border-color 120ms ease, transform 80ms ease;
+      text-align: left;
+    }
+    .product-pick:hover { border-color: var(--amber); }
+    .product-pick:active { transform: scale(0.98); }
+    .product-pick:disabled { opacity: 0.45; cursor: not-allowed; }
+    .product-pick .pname { font-weight: 700; font-size: 13.5px; margin-bottom: 4px; }
+    .product-pick .pmeta { font-size: 12px; color: var(--slate); display:flex; justify-content:space-between; }
+    .cart-line {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .cart-line:last-child { border-bottom: none; }
+    .cart-line .info { flex: 1; min-width: 0; }
+    .cart-line .pname { font-weight: 700; font-size: 13.5px; }
+    .cart-line .pprice { font-size: 12px; color: var(--slate); }
+    .qty-stepper { display: flex; align-items: center; gap: 6px; }
+    .qty-stepper button {
+      width: 26px; height: 26px;
+      border-radius: 6px;
+      border: 1px solid var(--line-strong);
+      background: var(--card);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+    }
+    .qty-stepper button:hover { border-color: var(--ink-700); }
+    .qty-stepper span { width: 24px; text-align: center; font-family: var(--font-mono); font-weight: 600; font-size: 13px; }
+    .cart-summary-row {
+      display: flex; justify-content: space-between;
+      padding: 6px 0;
+      font-size: 13.5px;
+    }
+    .cart-summary-row.total { font-weight: 800; font-size: 16px; padding-top: 12px; border-top: 1.5px solid var(--line); margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <script src="js/api.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/shell.js"></script>
+  <script>
+    if (!requireAuth()) { document.write(''); }
+  </script>
+
+  <script>
+    renderShell({ activeId: 'new-order', pageTitle: 'New order', crumb: 'Sales' });
+
+    let products = [];
+    let customers = [];
+    let cart = []; // { productId, name, price, qty, available }
+    let productSearch = '';
+    let selectedCustomerId = null;
+
+    async function load() {
+      const root = pageRoot();
+      root.innerHTML = `<div class="loading-row"><div class="spinner"></div> Loading catalog…</div>`;
+      try {
+        [products, customers] = await Promise.all([API.listProducts(), API.listCustomers()]);
+        render();
+      } catch (err) {
+        root.innerHTML = `<div class="empty-state"><div class="icon-wrap">${Icons.alert}</div><h4>Couldn't load data</h4><p>${escapeHtml(err.message)}</p></div>`;
+      }
+    }
+
+    function render() {
+      const root = pageRoot();
+
+      if (!customers.length) {
+        root.innerHTML = `
+          <div class="card"><div class="empty-state">
+            <div class="icon-wrap">${Icons.users}</div>
+            <h4>No customers yet</h4>
+            <p>Add a customer before placing an order.</p>
+            <a href="customers.html" class="btn btn-primary">${Icons.plus} Add a customer</a>
+          </div></div>`;
+        return;
+      }
+      if (!products.length) {
+        root.innerHTML = `
+          <div class="card"><div class="empty-state">
+            <div class="icon-wrap">${Icons.box}</div>
+            <h4>No products yet</h4>
+            <p>Add products to your catalog before placing an order.</p>
+            <a href="products.html" class="btn btn-primary">${Icons.plus} Add a product</a>
+          </div></div>`;
+        return;
+      }
+
+      root.innerHTML = `
+        <div class="order-grid">
+          <div>
+            <div class="card" style="margin-bottom:16px;">
+              <div class="card-body">
+                <div class="field" style="margin-bottom:0;">
+                  <label for="customerSelect">Customer</label>
+                  <select id="customerSelect">
+                    <option value="">Select a customer…</option>
+                    ${customers.map((c) => `<option value="${c.id}" ${c.id === selectedCustomerId ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3>Add products</h3>
+                <div class="search-box">${Icons.search}<input type="text" id="productSearch" placeholder="Search products…" value="${escapeHtml(productSearch)}" /></div>
+              </div>
+              <div class="card-body" id="productGrid"></div>
+            </div>
+          </div>
+
+          <div class="card" style="position:sticky; top:84px;">
+            <div class="card-header"><h3>Cart</h3></div>
+            <div class="card-body" id="cartBody"></div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('customerSelect').addEventListener('change', (e) => {
+        selectedCustomerId = e.target.value ? parseInt(e.target.value, 10) : null;
+      });
+
+      document.getElementById('productSearch').addEventListener('input', (e) => {
+        productSearch = e.target.value;
+        renderProductGrid();
+        const input = document.getElementById('productSearch');
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+      });
+
+      renderProductGrid();
+      renderCart();
+    }
+
+    function renderProductGrid() {
+      const grid = document.getElementById('productGrid');
+      const filtered = productSearch
+        ? products.filter((p) => p.name.toLowerCase().includes(productSearch.toLowerCase()))
+        : products;
+
+      if (!filtered.length) {
+        grid.innerHTML = `<p style="color:var(--slate); font-size:13.5px; text-align:center; padding:24px 0;">No products match "${escapeHtml(productSearch)}"</p>`;
+        return;
+      }
+
+      grid.innerHTML = `<div class="product-pick-grid">
+        ${filtered
+          .map((p) => {
+            const inCart = cart.find((c) => c.productId === p.id);
+            const remaining = p.quantity - (inCart ? inCart.qty : 0);
+            const disabled = remaining <= 0;
+            return `
+            <button class="product-pick" ${disabled ? 'disabled' : ''} onclick="addToCart(${p.id})">
+              <div class="pname">${escapeHtml(p.name)}</div>
+              <div class="pmeta"><span>${fmtMoney(p.price)}</span><span>${remaining} left</span></div>
+            </button>`;
+          })
+          .join('')}
+      </div>`;
+    }
+
+    function addToCart(productId) {
+      const product = products.find((p) => p.id === productId);
+      const existing = cart.find((c) => c.productId === productId);
+
+      if (existing) {
+        if (existing.qty >= product.quantity) {
+          Toast.error(`Only ${product.quantity} of "${product.name}" in stock`);
+          return;
+        }
+        existing.qty += 1;
+      } else {
+        cart.push({ productId: product.id, name: product.name, price: product.price, qty: 1, available: product.quantity });
+      }
+      renderProductGrid();
+      renderCart();
+    }
+
+    function changeQty(productId, delta) {
+      const line = cart.find((c) => c.productId === productId);
+      const product = products.find((p) => p.id === productId);
+      if (!line) return;
+
+      const newQty = line.qty + delta;
+      if (newQty <= 0) {
+        cart = cart.filter((c) => c.productId !== productId);
+      } else if (newQty > product.quantity) {
+        Toast.error(`Only ${product.quantity} of "${product.name}" in stock`);
+        return;
+      } else {
+        line.qty = newQty;
+      }
+      renderProductGrid();
+      renderCart();
+    }
+
+    function renderCart() {
+      const body = document.getElementById('cartBody');
+      if (!body) return;
+
+      if (!cart.length) {
+        body.innerHTML = `
+          <div class="empty-state" style="padding:32px 12px;">
+            <div class="icon-wrap">${Icons.cart}</div>
+            <h4>Cart is empty</h4>
+            <p>Add products from the left to build this order.</p>
+          </div>`;
+        return;
+      }
+
+      const lines = cart
+        .map(
+          (c) => `
+        <div class="cart-line">
+          <div class="info">
+            <div class="pname">${escapeHtml(c.name)}</div>
+            <div class="pprice">${fmtMoney(c.price)} each</div>
+          </div>
+          <div class="qty-stepper">
+            <button onclick="changeQty(${c.productId}, -1)" aria-label="Decrease quantity">${Icons.minus}</button>
+            <span>${c.qty}</span>
+            <button onclick="changeQty(${c.productId}, 1)" aria-label="Increase quantity">${Icons.plus}</button>
+          </div>
+          <div class="mono" style="font-weight:700; width:74px; text-align:right;">${fmtMoney(c.price * c.qty)}</div>
+        </div>`
+        )
+        .join('');
+
+      const total = cart.reduce((sum, c) => sum + c.price * c.qty, 0);
+
+      body.innerHTML = `
+        <div>${lines}</div>
+        <div class="cart-summary-row total"><span>Total</span><span class="mono">${fmtMoney(total)}</span></div>
+        <button class="btn btn-primary btn-block" style="margin-top:16px;" id="placeOrderBtn">Place order</button>
+      `;
+
+      document.getElementById('placeOrderBtn').addEventListener('click', placeOrder);
+    }
+
+    async function placeOrder() {
+      if (!selectedCustomerId) {
+        Toast.error('Select a customer before placing the order.');
+        return;
+      }
+      if (!cart.length) {
+        Toast.error('Add at least one product to the cart.');
+        return;
+      }
+
+      const btn = document.getElementById('placeOrderBtn');
+      btn.disabled = true;
+      btn.textContent = 'Placing order…';
+
+      const dto = {
+        customerId: selectedCustomerId,
+        items: cart.map((c) => ({ productId: c.productId, quantity: c.qty })),
+      };
+
+      try {
+        const order = await API.placeOrder(dto);
+        Toast.success(`Order ${order.orderCode} placed`);
+        location.href = `order-detail.html?id=${order.id}`;
+      } catch (err) {
+        Toast.error(err.message);
+        btn.disabled = false;
+        btn.textContent = 'Place order';
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>

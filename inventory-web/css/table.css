@@ -1,0 +1,104 @@
+/* ============================================================
+   Data table — desktop table, mobile stacked cards
+   ============================================================ */
+
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+table.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.data-table thead th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--slate);
+  padding: 12px 16px;
+  border-bottom: 1.5px solid var(--line);
+  white-space: nowrap;
+}
+
+.data-table tbody td {
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-900);
+  vertical-align: middle;
+}
+
+.data-table tbody tr:last-child td { border-bottom: none; }
+.data-table tbody tr { transition: background-color 100ms ease; }
+.data-table tbody tr:hover { background: var(--paper-dim); }
+
+.data-table .cell-primary { font-weight: 700; }
+.data-table .cell-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.data-table .cell-muted { color: var(--slate); }
+.data-table .cell-actions { text-align: right; white-space: nowrap; }
+
+.row-actions {
+  display: inline-flex;
+  gap: 6px;
+}
+.row-actions button {
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: var(--card);
+  color: var(--slate);
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+.row-actions button svg { width: 14px; height: 14px; }
+.row-actions button:hover { border-color: var(--ink-700); color: var(--ink-900); }
+.row-actions button.danger:hover { border-color: var(--alert-rust); color: var(--alert-rust); background: var(--alert-rust-bg); }
+
+/* ---------- Mobile: tables become stacked record cards ---------- */
+@media (max-width: 760px) {
+  .data-table thead { display: none; }
+
+  .data-table, .data-table tbody, .data-table tr, .data-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .data-table tr {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    margin-bottom: 10px;
+    padding: 6px 4px;
+    background: var(--card);
+  }
+
+  .data-table td {
+    border-bottom: none;
+    padding: 7px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    text-align: right;
+  }
+
+  .data-table td[data-label]::before {
+    content: attr(data-label);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--slate);
+    text-align: left;
+  }
+
+  .data-table td.cell-actions {
+    justify-content: flex-end;
+    padding-top: 10px;
+  }
+  .data-table td.cell-actions::before { content: none; }
+}

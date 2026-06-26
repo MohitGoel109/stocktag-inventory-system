@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  <script>(function(){var t=localStorage.getItem("inv_theme");if(t==="tavern"){document.documentElement.setAttribute("data-theme","tavern");}})();</script>
+  <title>Team · StockTag Inventory</title>
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/table.css" />
+  <link rel="stylesheet" href="css/modal.css" />
+  <link rel="stylesheet" href="css/animations.css" />
+  <link rel="stylesheet" href="css/theme-tavern.css" />
+</head>
+<body>
+  <script src="js/api.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/shell.js"></script>
+  <script>
+    if (!requireAuth()) { document.write(''); }
+    if (!requireRole('ADMIN')) {
+      document.write('');
+      location.href = 'dashboard.html';
+    }
+  </script>
+
+  <script>
+    renderShell({ activeId: 'users', pageTitle: 'Team', crumb: 'Administration' });
+    setTopbarActions(`<button class="btn btn-primary" id="addBtn">${Icons.plus} New team member</button>`);
+
+    let users = [];
+    const me = API.getCurrentUser();
+
+    async function load() {
+      const root = pageRoot();
+      root.innerHTML = `<div class="loading-row"><div class="spinner"></div> Loading team…</div>`;
+      try {
+        users = await API.listUsers();
+        render();
+      } catch (err) {
+        root.innerHTML = `<div class="empty-state"><div class="icon-wrap">${Icons.alert}</div><h4>Couldn't load team</h4><p>${escapeHtml(err.message)}</p></div>`;
+      }
+    }
+
+    function render() {
+      const root = pageRoot();
+
+      const rows = users
+        .map((u) => {
+          const statusBadge = u.status === 'ACTIVE'
+            ? `<span class="badge badge-success">Active</span>`
+            : `<span class="badge badge-neutral">Inactive</span>`;
+          const roleBadge = u.role === 'ADMIN'
+            ? `<span class="badge badge-amber">Admin</span>`
+            : `<span class="badge badge-neutral">Staff</span>`;
+          return `
+        <tr>
+          <td data-label="Name" class="cell-primary">${escapeHtml(u.name)}${u.id === me.userId ? ' <span style="color:var(--slate-light); font-weight:400;">(you)</span>' : ''}</td>
+          <td data-label="Email" class="cell-muted">${escapeHtml(u.email)}</td>
+          <td data-label="Role">${roleBadge}</td>
+          <td data-label="Status">${statusBadge}</td>
+          <td data-label="Actions" class="cell-actions">
+            <div class="row-actions">
+              <button onclick="openForm(${u.id})" aria-label="Edit ${escapeHtml(u.name)}">${Icons.edit}</button>
+              <button class="danger" onclick="confirmDelete(${u.id})" aria-label="Delete ${escapeHtml(u.name)}" ${u.id === me.userId ? 'disabled' : ''}>${Icons.trash}</button>
+            </div>
+          </td>
+        </tr>`;
+        })
+        .join('');
+
+      root.innerHTML = `
+        <div class="card">
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div>`;
+    }
+
+    function openForm(id) {
+      const editing = users.find((u) => u.id === id);
+
+      const overlay = Modal.open(`
+        <div class="modal-header">
+          <h3>${editing ? 'Edit team member' : 'New team member'}</h3>
+          <button class="modal-close" id="closeModal">${Icons.close}</button>
+        </div>
+        <div class="modal-body">
+          <div class="field">
+            <label for="uName">Full name</label>
+            <input id="uName" type="text" value="${editing ? escapeHtml(editing.name) : ''}" />
+          </div>
+          <div class="field">
+            <label for="uEmail">Email</label>
+            <input id="uEmail" type="email" value="${editing ? escapeHtml(editing.email) : ''}" ${editing ? 'disabled' : ''} />
+            ${editing ? `<div class="hint">Email cannot be changed after the account is created.</div>` : ''}
+          </div>
+          <div class="field">
+            <label for="uPassword">${editing ? 'New password' : 'Password'}</label>
+            <input id="uPassword" type="password" placeholder="${editing ? 'Leave blank to keep current password' : 'At least 8 characters'}" />
+          </div>
+          <div class="input-row">
+            <div class="field">
+              <label for="uRole">Role</label>
+              <select id="uRole">
+                <option value="STAFF" ${editing && editing.role === 'STAFF' ? 'selected' : ''}>Staff</option>
+                <option value="ADMIN" ${editing && editing.role === 'ADMIN' ? 'selected' : ''}>Admin</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="uStatus">Status</label>
+              <select id="uStatus">
+                <option value="ACTIVE" ${!editing || editing.status === 'ACTIVE' ? 'selected' : ''}>Active</option>
+                <option value="INACTIVE" ${editing && editing.status === 'INACTIVE' ? 'selected' : ''}>Inactive</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label for="uMobile">Mobile <span style="font-weight:400; color:var(--slate-light);">(optional)</span></label>
+            <input id="uMobile" type="tel" value="${editing ? escapeHtml(editing.mobileNumber || '') : ''}" />
+          </div>
+          <div class="field">
+            <label for="uAddress">Address <span style="font-weight:400; color:var(--slate-light);">(optional)</span></label>
+            <input id="uAddress" type="text" value="${editing ? escapeHtml(editing.address || '') : ''}" />
+          </div>
+          <div class="error-text" id="formError" style="display:none;"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" id="cancelBtn">Cancel</button>
+          <button class="btn btn-primary" id="saveBtn">${editing ? 'Save changes' : 'Create team member'}</button>
+        </div>
+      `);
+
+      overlay.querySelector('#closeModal').onclick = Modal.close;
+      overlay.querySelector('#cancelBtn').onclick = Modal.close;
+      overlay.querySelector('#uName').focus();
+
+      overlay.querySelector('#saveBtn').onclick = async () => {
+        const name = overlay.querySelector('#uName').value.trim();
+        const email = overlay.querySelector('#uEmail').value.trim();
+        const password = overlay.querySelector('#uPassword').value;
+        const role = overlay.querySelector('#uRole').value;
+        const status = overlay.querySelector('#uStatus').value;
+        const mobileNumber = overlay.querySelector('#uMobile').value.trim();
+        const address = overlay.querySelector('#uAddress').value.trim();
+        const errEl = overlay.querySelector('#formError');
+
+        if (!name || !email) {
+          errEl.textContent = 'Name and email are required.';
+          errEl.style.display = 'block';
+          return;
+        }
+        if (!editing && (!password || password.length < 8)) {
+          errEl.textContent = 'Password must be at least 8 characters.';
+          errEl.style.display = 'block';
+          return;
+        }
+
+        const btn = overlay.querySelector('#saveBtn');
+        btn.disabled = true;
+        btn.textContent = 'Saving…';
+
+        const dto = {
+          name, email,
+          password: password || null,
+          role, status,
+          mobileNumber: mobileNumber || null,
+          address: address || null,
+        };
+
+        try {
+          if (editing) {
+            await API.updateUser(editing.id, dto);
+            Toast.success('Team member updated');
+          } else {
+            await API.createUser(dto);
+            Toast.success('Team member created');
+          }
+          Modal.close();
+          load();
+        } catch (err) {
+          errEl.textContent = err.message;
+          errEl.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = editing ? 'Save changes' : 'Create team member';
+        }
+      };
+    }
+
+    function confirmDelete(id) {
+      if (id === me.userId) return;
+      const u = users.find((x) => x.id === id);
+      Modal.confirm({
+        title: `Remove "${u.name}"?`,
+        message: 'They will immediately lose access to the system.',
+        confirmLabel: 'Remove access',
+        onConfirm: async () => {
+          await API.deleteUser(id);
+          Toast.success('Team member removed');
+          load();
+        },
+      });
+    }
+
+    document.getElementById('addBtn').addEventListener('click', () => openForm());
+
+    load();
+  </script>
+</body>
+</html>
