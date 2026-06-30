@@ -5,7 +5,7 @@
 const API = (() => {
   // Adjust this if your API runs somewhere else (e.g. in production
   // behind a reverse proxy at /api already, you can set this to "").
-  const BASE_URL = window.INVENTORY_API_BASE_URL || 'http://localhost:8080/api';
+  cconst BASE_URL = window.INVENTORY_API_BASE_URL || 'https://stocktag-inventory-system-production.up.railway.app/api';
 
   function getToken() {
     return localStorage.getItem('inv_token');
