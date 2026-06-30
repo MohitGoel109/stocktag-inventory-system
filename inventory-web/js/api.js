@@ -5,7 +5,11 @@
 const API = (() => {
   // Adjust this if your API runs somewhere else (e.g. in production
   // behind a reverse proxy at /api already, you can set this to "").
-  cconst BASE_URL = window.INVENTORY_API_BASE_URL || 'https://stocktag-inventory-system-production.up.railway.app/api';
+<<<<<<< HEAD
+  const BASE_URL = window.INVENTORY_API_BASE_URL || 'https://stocktag-inventory-system-production.up.railway.app/api';
+=======
+  const BASE_URL = window.INVENTORY_API_BASE_URL || 'stocktag-inventory-system-production.up.railway.app';
+>>>>>>> bf9c0ba7bb96f6afc26bb302c1d05ab3ee40b3d0
 
   function getToken() {
     return localStorage.getItem('inv_token');
